@@ -13,8 +13,6 @@ using MySignatures = SignatureList<Integral, Float>;
 using MySettings = Settings<MyComponents, MySignatures>;
 
 // Now we will test our "type traits"
-namespace Tests
-{
 static_assert(MySettings::componentCount() == 5, "Incorrect components count");
 static_assert(MySettings::signatureCount() == 2, "Incorrect signature count");
 
@@ -35,6 +33,4 @@ static_assert(MySettings::componentID<bool>() == 4, "Wrong bool ID");
 
 static_assert(MySettings::signatureID<Integral>() == 0, "Wrong Integral ID");
 static_assert(MySettings::signatureID<Float>() == 1, "Wrong Float ID");
-}
-
 }
