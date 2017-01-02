@@ -1,3 +1,5 @@
+#include <cassert>
+
 #include "EnergySource.hpp"
 
 namespace ABM
@@ -16,10 +18,13 @@ EnergySource::EnergySource(std::size_t maxCapacity, std::size_t currentLevel,
     currentLevel(currentLevel),
     regenerationRate(regenerationRate)
 {
-  shape.setPosition(position);
-  shape.setFillColor(sf::Color::Yellow);
+  assert(currentLevel <= maxCapacity);
 
   updateShapeRadius();
+
+  shape.setOrigin(shape.getRadius(), shape.getRadius());
+  shape.setPosition(position);
+  shape.setFillColor(sf::Color::Red);
 }
 
 /**
@@ -35,6 +40,8 @@ void EnergySource::setMaxCapacity(std::size_t value)
   }
 
   maxCapacity = value;
+
+  updateShapeRadius();
 }
 
 /**

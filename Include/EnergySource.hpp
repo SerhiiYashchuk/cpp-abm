@@ -25,7 +25,7 @@ public:
   sf::Vector2f getPosition() const { return shape.getPosition(); }
   void setPosition(sf::Vector2f value) { shape.setPosition(value); }
 
-  const sf::CircleShape & getShape() const { return shape; }
+  const auto & getShape() const { return shape; }
 
   void regenerate();
 
