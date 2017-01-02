@@ -2,10 +2,9 @@
 
 int main(int /*argc*/, char ** /*argv*/)
 {
-  sf::RenderWindow window(sf::VideoMode(800, 600), L"ABM Project");
-  ABM::Application app(window);
+  ABM::Application app;
 
-  app.Run();
+  app.run();
 
   return 0;
 }
