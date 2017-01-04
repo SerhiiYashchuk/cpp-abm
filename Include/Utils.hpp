@@ -31,11 +31,24 @@ auto product(const sf::Vector2f & v1, const sf::Vector2f & v2)
 }
 
 /**
+ * @brief Calculates normalized vector for a given one
+ */
+auto normal(const sf::Vector2f & vector)
+{
+  const auto mag = magnitude(vector);
+
+  return sf::Vector2f{ vector.x / mag, vector.y / mag };
+}
+
+/**
  * @brief Calculates angle between two given vectors
  */
 auto angle(const sf::Vector2f & v1, const sf::Vector2f & v2)
 {
-  return std::acos(product(v1, v2) / magnitude(v1) * magnitude(v2)) * 180 / PI;
+  const auto normalV1 = normal(v1);
+  const auto normalV2 = normal(v2);
+
+  return std::acos(product(normalV1, normalV2)) * 180.f / PI;
 }
 
 /**
