@@ -8,6 +8,11 @@ namespace ABM
 // Position and velocity of an Agent
 struct PositionAndVelocity
 {
+  PositionAndVelocity() = default;
+  PositionAndVelocity(const sf::Vector2f & position,
+                      const sf::Vector2f & velocity)
+    : position(position), velocity(velocity) { }
+
   sf::Vector2f position;
   sf::Vector2f velocity;
 };
@@ -32,6 +37,15 @@ struct Graphic
   }
 
   sf::ConvexShape shape;
+};
+
+struct Energy
+{
+  Energy() = default;
+  explicit Energy(std::size_t value) : value(value) { }
+
+  std::size_t value = 0;
+  static constexpr std::size_t max = 100;
 };
 }
 
