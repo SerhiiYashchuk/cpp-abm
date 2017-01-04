@@ -41,7 +41,7 @@ public:
   }
 
 private:
-  using BitsetList = brigand::filled_list<Bitset, Settings::componentCount()>;
+  using BitsetList = brigand::filled_list<Bitset, Settings::signatureCount()>;
   using BitsetTuple = brigand::as_tuple<BitsetList>;
 
   /**
