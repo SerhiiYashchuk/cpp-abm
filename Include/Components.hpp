@@ -5,16 +5,17 @@
 
 namespace ABM
 {
-// Position and velocity of an Agent
-struct PositionAndVelocity
+// Position, velocity and view range of an Agent
+struct Orientation
 {
-  PositionAndVelocity() = default;
-  PositionAndVelocity(const sf::Vector2f & position,
-                      const sf::Vector2f & velocity)
-    : position(position), velocity(velocity) { }
+  Orientation() = default;
+  Orientation(const sf::Vector2f & position, const sf::Vector2f & velocity,
+              float viewRange)
+    : position(position), velocity(velocity), viewRange(viewRange) { }
 
   sf::Vector2f position;
   sf::Vector2f velocity;
+  float viewRange = 0;
 };
 
 // Graphical representation of an Agent
