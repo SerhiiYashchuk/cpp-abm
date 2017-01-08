@@ -24,7 +24,6 @@ EnergySource::EnergySource(float maxCapacity, float currentLevel,
 
   updateShapeRadius();
 
-  shape.setOrigin(shape.getRadius(), shape.getRadius());
   shape.setPosition(position);
   shape.setFillColor(sf::Color::Red);
 }
@@ -54,6 +53,19 @@ void EnergySource::regenerate()
 }
 
 /**
+ * @brief Resets current level of energy to zero
+ * @return Level of energy before reset
+ */
+float EnergySource::reset()
+{
+  const auto energy = currentLevel;
+
+  setCurrentLevel(0);
+
+  return energy;
+}
+
+/**
  * @brief Changes shape's radius in proportion to the current level of energy
  */
 void EnergySource::updateShapeRadius()
@@ -62,6 +74,7 @@ void EnergySource::updateShapeRadius()
   const auto k = static_cast<float> (currentLevel) / maxCapacity;
 
   shape.setRadius(minimumRadius + radiusDifference * k);
+  shape.setOrigin(shape.getRadius(), shape.getRadius());
 }
 
 }

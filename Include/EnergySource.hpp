@@ -25,6 +25,7 @@ public:
   const auto & getShape() const { return shape; }
 
   void regenerate();
+  float reset();
 
 protected:
 
