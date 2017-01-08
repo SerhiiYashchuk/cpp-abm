@@ -48,7 +48,7 @@ struct Energy
     : value(value), consumptionRate(consumptionRate) { }
 
   float value = 0;
-  const float consumptionRate = 1.f;
+  float consumptionRate = 1.f;
   static constexpr float max = 100.f;
 };
 }
