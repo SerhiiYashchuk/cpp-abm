@@ -12,13 +12,15 @@ namespace ABM
  * @param regenerationRate
  * @param position
  */
-EnergySource::EnergySource(std::size_t maxCapacity, std::size_t currentLevel,
-                           std::size_t regenerationRate, sf::Vector2f position)
-  : maxCapacity(maxCapacity),
-    currentLevel(currentLevel),
-    regenerationRate(regenerationRate)
+EnergySource::EnergySource(float maxCapacity, float currentLevel,
+                           float regenerationRate, sf::Vector2f position)
+  : currentLevel(currentLevel),
+    regenerationRate(regenerationRate),
+    maxCapacity(maxCapacity)
 {
+  assert(maxCapacity > 0);
   assert(currentLevel <= maxCapacity);
+  assert(regenerationRate > 0);
 
   updateShapeRadius();
 
@@ -28,32 +30,15 @@ EnergySource::EnergySource(std::size_t maxCapacity, std::size_t currentLevel,
 }
 
 /**
- * @brief Sets maximum level of energy. If current level of energy is higher
- * than the given value, it resets it to the specified maximum level
- * @param value
- */
-void EnergySource::setMaxCapacity(std::size_t value)
-{
-  if (currentLevel > value)
-  {
-    currentLevel = value;
-  }
-
-  maxCapacity = value;
-
-  updateShapeRadius();
-}
-
-/**
  * @brief Sets current level of energy
  * @param value
  */
-void EnergySource::setCurrentLevel(std::size_t value)
+void EnergySource::setCurrentLevel(float value)
 {
-  if (value > maxCapacity)
-  {
-    return;
-  }
+  assert(value >= 0);
+  assert(value <= maxCapacity);
+
+  currentLevel = value;
 
   updateShapeRadius();
 }
@@ -63,11 +48,6 @@ void EnergySource::setCurrentLevel(std::size_t value)
  */
 void EnergySource::regenerate()
 {
-  if (regenerationRate == 0)
-  {
-    return;
-  }
-
   currentLevel = std::min(currentLevel + regenerationRate, maxCapacity);
 
   updateShapeRadius();

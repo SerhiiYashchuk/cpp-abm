@@ -8,19 +8,16 @@ namespace ABM
 class EnergySource
 {
 public:
-  EnergySource() : EnergySource(0, 0, 0) {}
-  EnergySource(std::size_t maxCapacity, std::size_t currentLevel,
-               std::size_t regenerationRate,
+  EnergySource(float maxCapacity) : EnergySource(maxCapacity, 0, 1.f) { }
+  EnergySource(float maxCapacity, float currentLevel,
+               float regenerationRate = 1.f,
                sf::Vector2f position = sf::Vector2f(0, 0));
 
-  std::size_t getMaxCapacity() const { return maxCapacity; }
-  void setMaxCapacity(std::size_t value);
+  float getRegenerationRate() const { return regenerationRate; }
+  float getMaxCapacity() const { return maxCapacity; }
 
-  std::size_t getCurrentLevel() const { return currentLevel; }
-  void setCurrentLevel(std::size_t value);
-
-  std::size_t getRegenerationRate() const { return regenerationRate; }
-  void setRegenerationRate(std::size_t value) { regenerationRate = value; }
+  float getCurrentLevel() const { return currentLevel; }
+  void setCurrentLevel(float value);
 
   sf::Vector2f getPosition() const { return shape.getPosition(); }
   void setPosition(sf::Vector2f value) { shape.setPosition(value); }
@@ -34,9 +31,9 @@ protected:
 private:
   void updateShapeRadius();
 
-  std::size_t maxCapacity = 0;
-  std::size_t currentLevel = 0;
-  std::size_t regenerationRate = 0;
+  float currentLevel = 0;
+  const float regenerationRate = 1.f;
+  const float maxCapacity = 0;
   sf::CircleShape shape;
 
   static constexpr auto minimumRadius = 5.f;

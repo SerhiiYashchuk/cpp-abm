@@ -40,13 +40,16 @@ struct Graphic
   sf::ConvexShape shape;
 };
 
+// Life energy of an Agent
 struct Energy
 {
   Energy() = default;
-  explicit Energy(std::size_t value) : value(value) { }
+  explicit Energy(float value, float consumptionRate = 1.f)
+    : value(value), consumptionRate(consumptionRate) { }
 
-  std::size_t value = 0;
-  static constexpr std::size_t max = 100;
+  float value = 0;
+  const float consumptionRate = 1.f;
+  static constexpr float max = 100.f;
 };
 }
 
