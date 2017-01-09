@@ -55,6 +55,17 @@ void Application::handleEvents()
       window.close();
       break;
 
+    case EventType::MouseWheelMoved:
+    {
+      auto view = window.getView();
+      const auto zoomFactor = 1.f - 0.1f * event.mouseWheel.delta;
+
+      view.setSize(view.getSize() * zoomFactor);
+
+      window.setView(view);
+    }
+      break;
+
     default:
       break;
     }
