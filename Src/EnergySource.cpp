@@ -44,10 +44,11 @@ void EnergySource::setCurrentLevel(float value)
 
 /**
  * @brief Accumulates energy
+ * @param delta - time delta
  */
-void EnergySource::regenerate()
+void EnergySource::regenerate(float delta)
 {
-  currentLevel = std::min(currentLevel + regenerationRate, maxCapacity);
+  currentLevel = std::min(currentLevel + regenerationRate * delta, maxCapacity);
 
   updateShapeRadius();
 }
