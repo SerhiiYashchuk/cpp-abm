@@ -8,6 +8,18 @@ namespace ABM
 {
 const sf::Time Application::timePerFrame = sf::seconds(1.f / 60.f);
 
+Application::Application(const sf::Vector2f & worldSize,
+                         const sf::Vector2u & windowSize, std::wstring title)
+  : worldSize(worldSize),
+    window({ windowSize.x, windowSize.y }, title)
+{
+  auto view = window.getView();
+
+  view.setCenter(windowSize.x * 0.5f, windowSize.y * 0.5f);
+
+  window.setView(view);
+}
+
 /**
  * @brief Application main loop
  */
@@ -133,8 +145,6 @@ void Application::moveAgent(std::size_t index, float delta)
 {
   auto & orientation = agentManager.getComponent<Orientation>(index);
   const auto & destination = agentManager.getComponent<Destination>(index);
-  // TODO: Make the world independent from window size
-  const auto worldSize = window.getSize();
   const auto towardsDestination = destination.position - orientation.position;
   const auto distance = Utils::magnitude(towardsDestination);
   const auto step = orientation.velocity * delta;
@@ -352,8 +362,8 @@ void Application::createAgents()
     agentManager.addComponent<Graphic>(index);
     agentManager.addComponent<Energy>(index, Utils::randomNumber(150.f, 300.f));
 
-    orientation.position.x = static_cast<float>(window.getSize().x / 2);
-    orientation.position.y = static_cast<float>(window.getSize().y / 2);
+    orientation.position.x = Utils::randomNumber(0.f, worldSize.x);
+    orientation.position.y = Utils::randomNumber(0.f, worldSize.y);
     orientation.velocity = 100.f;
     orientation.viewRange = Utils::randomNumber(75.f, 150.f);
     destination.position = orientation.position;
@@ -365,9 +375,6 @@ void Application::createAgents()
  */
 void Application::createEnergySources()
 {
-  const auto sourceArea = static_cast<float>(std::min(window.getSize().x,
-                                                      window.getSize().y));
-
   energySources.reserve(maxSourcesNumber);
 
   for (std::size_t i = 0; i < maxSourcesNumber; ++i)
@@ -375,7 +382,8 @@ void Application::createEnergySources()
     const auto maxCapacity = Utils::randomNumber(10u, 50u);
     const auto initialLevel = Utils::randomNumber(0u, maxCapacity);
     const auto regenRate = Utils::randomNumber(1u, 3u);
-    const auto position = Utils::randomVector(0.f, sourceArea);
+    const auto position = sf::Vector2f{ Utils::randomNumber(0.f, worldSize.x),
+                                        Utils::randomNumber(0.f, worldSize.y) };
 
     energySources.emplace_back(maxCapacity, initialLevel, regenRate, position);
   }

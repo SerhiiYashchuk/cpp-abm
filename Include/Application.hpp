@@ -24,12 +24,13 @@ using AgentSettings = Settings<AgentComponents, AgentSignatures>;
 class Application
 {
 public:
-  Application(unsigned int windowWidth = 800, unsigned int windowHeight = 600,
-              std::wstring title = L"Application")
-    : window({ windowWidth, windowHeight }, title) { }
+  Application(const sf::Vector2f & worldSize = { 800.f, 600.f },
+              const sf::Vector2u & windowSize = { 800, 600 },
+              std::wstring title = L"Application");
 
   void run();
 
+  const sf::Vector2f worldSize;
   static const std::size_t maxAgentsNumber = 25;
   static const std::size_t maxSourcesNumber = 10;
 
