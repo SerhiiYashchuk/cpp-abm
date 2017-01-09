@@ -9,11 +9,15 @@
 
 namespace ABM
 {
-using AgentComponents = ComponentList<PositionAndVelocity, Graphic>;
+using AgentComponents = ComponentList<Orientation, Energy, Destination, Graphic>;
 
-using Render = Signature<PositionAndVelocity, Graphic>;
-using Movement = Signature<PositionAndVelocity>;
-using AgentSignatures = SignatureList<Render, Movement>;
+using Movement = Signature<Orientation, Destination>;
+using Life = Signature<Energy>;
+using Harvesting = Signature<Orientation, Destination, Energy>;
+using Render = Signature<Orientation, Destination, Graphic>;
+using EnergyIndication = Signature<Energy, Graphic>;
+using AgentSignatures = SignatureList<Movement, Life, Harvesting, Render,
+  EnergyIndication>;
 
 using AgentSettings = Settings<AgentComponents, AgentSignatures>;
 
@@ -26,12 +30,25 @@ public:
 
   void run();
 
+  static const std::size_t maxAgentsNumber = 25;
+  static const std::size_t maxSourcesNumber = 10;
+
 private:
   void handleEvents();
   void update(float delta);
   void draw();
 
+  void moveAgent(std::size_t index, float delta);
+  void updateAgentPositionAndRotation(std::size_t index);
+  void applyAgentMetabolism(std::size_t index, float delta);
+  void indicateAgentEnergyLevel(std::size_t index);
+  void lookForEnergy(std::size_t index);
+
+  std::vector<std::size_t> findEnergySourcesInRange(const sf::Vector2f & position,
+                                                    float range);
+
   void createAgents();
+  void createEnergySources();
 
   sf::RenderWindow window;
   Manager<AgentSettings> agentManager;
