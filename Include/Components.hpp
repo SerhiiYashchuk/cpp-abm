@@ -5,16 +5,23 @@
 
 namespace ABM
 {
+struct Destination
+{
+  Destination() = default;
+  explicit Destination(const sf::Vector2f & position) : position(position) { }
+
+  sf::Vector2f position;
+};
+
 // Position, velocity and view range of an Agent
 struct Orientation
 {
   Orientation() = default;
-  Orientation(const sf::Vector2f & position, const sf::Vector2f & velocity,
-              float viewRange)
+  Orientation(const sf::Vector2f & position, float velocity, float viewRange)
     : position(position), velocity(velocity), viewRange(viewRange) { }
 
   sf::Vector2f position;
-  sf::Vector2f velocity;
+  float velocity;
   float viewRange = 0;
 };
 
