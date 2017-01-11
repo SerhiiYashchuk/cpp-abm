@@ -51,6 +51,11 @@ private:
   void createAgents();
   void createEnergySources();
 
+  void zoomView(float factor);
+  void moveView(const sf::Vector2f & offset);
+
+  float getZoomFactor() const;
+
   sf::RenderWindow window;
   Manager<AgentSettings> agentManager;
   std::vector<EnergySource> energySources;

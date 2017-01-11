@@ -14,9 +14,10 @@ Application::Application(const sf::Vector2f & worldSize,
     window({ windowSize.x, windowSize.y }, title)
 {
   auto view = window.getView();
+  const sf::Vector2f viewCenter = { std::max(static_cast<float>(windowSize.x), worldSize.x) * 0.5f,
+                                    std::max(static_cast<float>(windowSize.y), worldSize.y) * 0.5f };
 
-  view.setCenter(windowSize.x * 0.5f, windowSize.y * 0.5f);
-
+  view.setCenter(viewCenter);
   window.setView(view);
 }
 
@@ -57,6 +58,8 @@ void Application::handleEvents()
 {
   using EventType = sf::Event::EventType;
 
+  static bool mouseLButtonDown = false;
+  static sf::Vector2i lastMousePosition;
   sf::Event event;
 
   while (window.pollEvent(event))
@@ -67,15 +70,66 @@ void Application::handleEvents()
       window.close();
       break;
 
+    case EventType::KeyPressed:
+      switch (event.key.code)
+      {
+      case sf::Keyboard::Add:
+        zoomView(0.9f);
+        break;
+
+      case sf::Keyboard::Subtract:
+        zoomView(1.1f);
+        break;
+
+      case sf::Keyboard::Left:
+        moveView(sf::Vector2f{ -10.f, 0 } * getZoomFactor());
+        break;
+
+      case sf::Keyboard::Right:
+        moveView(sf::Vector2f{ 10.f, 0 } * getZoomFactor());
+        break;
+
+      case sf::Keyboard::Up:
+        moveView(sf::Vector2f{ 0, -10.f } * getZoomFactor());
+        break;
+
+      case sf::Keyboard::Down:
+        moveView(sf::Vector2f{ 0, 10.f } * getZoomFactor());
+        break;
+
+      default:
+        break;
+      }
+
+      break;
+
     case EventType::MouseWheelMoved:
-    {
-      auto view = window.getView();
-      const auto zoomFactor = 1.f - 0.1f * event.mouseWheel.delta;
+      zoomView(1.f - 0.1f * event.mouseWheel.delta);
+      break;
 
-      view.setSize(view.getSize() * zoomFactor);
+    // World movement
+    case EventType::MouseButtonPressed:
+      mouseLButtonDown = true;
+      lastMousePosition = sf::Mouse::getPosition(window);
+      break;
 
-      window.setView(view);
-    }
+    case EventType::MouseButtonReleased:
+      mouseLButtonDown = false;
+      break;
+
+    case EventType::MouseMoved:
+      if (mouseLButtonDown)
+      {
+        const auto mousePosition = sf::Mouse::getPosition(window);
+        const sf::Vector2f offset = {
+          static_cast<float>(lastMousePosition.x - mousePosition.x),
+          static_cast<float>(lastMousePosition.y - mousePosition.y)
+        };
+
+        moveView(offset * getZoomFactor());
+
+        lastMousePosition = mousePosition;
+      }
       break;
 
     default:
@@ -387,5 +441,42 @@ void Application::createEnergySources()
 
     energySources.emplace_back(maxCapacity, initialLevel, regenRate, position);
   }
+}
+
+/**
+ * @brief Zooms image in or out
+ * @param factor - factor of zooming
+ */
+void Application::zoomView(float factor)
+{
+  auto view = window.getView();
+  const auto windowSize = sf::Vector2f{ static_cast<float>(window.getSize().x),
+                                        static_cast<float>(window.getSize().y) };
+  auto newSize = view.getSize() * factor;
+
+  if (newSize.x < windowSize.x || newSize.y < windowSize.y)
+  {
+    newSize = windowSize;
+  }
+
+  view.setSize(newSize);
+  window.setView(view);
+}
+
+/**
+ * @brief Moves image
+ * @param offset - distance to move the view
+ */
+void Application::moveView(const sf::Vector2f & offset)
+{
+  auto view = window.getView();
+
+  view.move(offset);
+  window.setView(view);
+}
+
+float Application::getZoomFactor() const
+{
+  return window.getView().getSize().x / window.getSize().x;
 }
 }
