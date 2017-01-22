@@ -17,7 +17,7 @@ include_directories(ThirdParty)
 include_directories(${SFML_INCLUDE_DIR})
 
 add_executable(${PROJECT_NAME} ${HPP_LIST} ${SRC_LIST} main.cpp)
-target_link_libraries(${PROJECT_NAME} ${SFML_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${SFML_LIBRARIES} pthread)
 
 add_executable(Tests ${HPP_LIST} ${SRC_LIST} ${TESTS_LIST})
-target_link_libraries(Tests ${SFML_LIBRARIES})
+target_link_libraries(Tests ${SFML_LIBRARIES} pthread)

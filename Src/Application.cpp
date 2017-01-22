@@ -11,7 +11,10 @@ const sf::Time Application::timePerFrame = sf::seconds(1.f / 60.f);
 Application::Application(const sf::Vector2f & worldSize,
                          const sf::Vector2u & windowSize, std::wstring title)
   : worldSize(worldSize),
-    window({ windowSize.x, windowSize.y }, title)
+    threadsNumber(std::thread::hardware_concurrency() != 0 ?
+      std::thread::hardware_concurrency() : 2),
+    window({ windowSize.x, windowSize.y }, title),
+    threadPool(threadsNumber)
 {
   auto view = window.getView();
   const sf::Vector2f viewCenter = { std::max(static_cast<float>(windowSize.x), worldSize.x) * 0.5f,

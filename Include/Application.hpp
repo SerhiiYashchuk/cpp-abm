@@ -1,6 +1,7 @@
 #ifndef ABM_APPLICATION_HPP
 #define ABM_APPLICATION_HPP
 
+#include "ThreadPool.hpp"
 #include "Manager.hpp"
 #include "Components.hpp"
 #include "EnergySource.hpp"
@@ -31,6 +32,7 @@ public:
   void run();
 
   const sf::Vector2f worldSize;
+  const std::size_t threadsNumber;
   static const std::size_t maxAgentsNumber = 25;
   static const std::size_t maxSourcesNumber = 10;
 
@@ -59,6 +61,7 @@ private:
   sf::RenderWindow window;
   Manager<AgentSettings> agentManager;
   std::vector<EnergySource> energySources;
+  ThreadPool threadPool;
 
   static const sf::Time timePerFrame;
 };
