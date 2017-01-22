@@ -22,6 +22,11 @@ Application::Application(const sf::Vector2f & worldSize,
 
   view.setCenter(viewCenter);
   window.setView(view);
+
+  font.loadFromFile("/usr/share/fonts/TTF/DejaVuSans.ttf");
+  statisticLabel.setFont(font);
+  statisticLabel.setFillColor(sf::Color::White);
+  statisticLabel.setCharacterSize(15);
 }
 
 /**
@@ -33,22 +38,22 @@ void Application::run()
   auto lastUpdateTime = sf::Time::Zero;
 
   createEnergySources();
-  createAgents();
 
   while (window.isOpen())
   {
+    lastUpdateTime = clock.restart();
+
     handleEvents();
+    createAgents();
+    update(timePerFrame.asSeconds());
+    agentManager.refresh();
 
-    lastUpdateTime += clock.restart();
+    const auto fps = static_cast<std::size_t>(1.f / lastUpdateTime.asSeconds());
 
-    while (lastUpdateTime > timePerFrame)
-    {
-      lastUpdateTime -= timePerFrame;
-
-      handleEvents();
-      update(timePerFrame.asSeconds());
-      agentManager.refresh();
-    }
+    statisticLabel.setString("FPS: " + std::to_string(fps) + "\nPopulation: " +
+                             std::to_string(agentManager.getAgentsCount()));
+    statisticLabel.setPosition(window.mapPixelToCoords({ 0, 0 }));
+    statisticLabel.setScale({ getZoomFactor(), getZoomFactor() });
 
     draw();
   }
@@ -159,11 +164,11 @@ void Application::update(float delta)
   agentManager.forAgentsMatching<Render>(std::bind(& Application::updateAgentPositionAndRotation,
                                                    this, _1));
   // Reduce agent's level of energy as a cost of its action
-  //agentManager.forAgentsMatching<Life>(std::bind(& Application::applyAgentMetabolism,
-  //                                               this, _1, delta));
+  agentManager.forAgentsMatching<Life>(std::bind(& Application::applyAgentMetabolism,
+                                                 this, _1, delta));
   // Change agent's fill color according to its level of energy
-  //agentManager.forAgentsMatching<EnergyIndication>(std::bind(& Application::indicateAgentEnergyLevel,
-  //                                                           this, _1));
+  agentManager.forAgentsMatching<EnergyIndication>(std::bind(& Application::indicateAgentEnergyLevel,
+                                                             this, _1));
 
   // Udate energy sources
   for (auto & source : energySources)
@@ -190,6 +195,7 @@ void Application::draw()
     window.draw(graphic.shape);
   });
 
+  window.draw(statisticLabel);
   window.display();
 }
 
@@ -270,9 +276,11 @@ void Application::applyAgentMetabolism(std::size_t index, float delta)
 {
   auto & energy = agentManager.getComponent<Energy>(index);
 
-  if (energy.value > 0)
+  energy.value -= delta * energy.consumptionRate;
+
+  if (energy.value < 0)
   {
-    energy.value -= delta * energy.consumptionRate;
+    agentManager.kill(index);
   }
 }
 
@@ -307,7 +315,7 @@ void Application::lookForEnergy(std::size_t index)
 
   // We are interested only in sources with some minimum energy level or more
   // TODO: Make this value more reasonable, not just a constant
-  const auto minimumPreferableLevel = 3.f;
+  const auto minimumPreferableLevel = 20.f;
   std::vector<std::size_t> preferableSources;
 
   for (const auto sourceIndex : availableSources)
@@ -354,6 +362,7 @@ void Application::lookForEnergy(std::size_t index)
             Utils::randomVector(-10.f, 10.f)) * orientation.viewRange;
     }
   }
+  // Move to the source and replenish energy
   else
   {
     const auto richestSourceItr = std::max_element(std::begin(availableSources),
@@ -370,7 +379,7 @@ void Application::lookForEnergy(std::size_t index)
       {
         auto & energy = agentManager.getComponent<Energy>(index);
 
-        energy.value += source.reset();
+        energy.value = std::min(500.f, energy.value + source.reset());
       }
     }
     else
@@ -409,7 +418,12 @@ std::vector<std::size_t> Application::findEnergySourcesInRange(const sf::Vector2
  */
 void Application::createAgents()
 {
-  for (std::size_t i = 0; i < maxAgentsNumber; ++i)
+  if (agentManager.getAgentsCount() > maxAgentsNumber)
+  {
+    return;
+  }
+
+  for (std::size_t i = 0; i < maxAgentsNumber / 20; ++i)
   {
     const auto index = agentManager.createIndex();
 
@@ -417,12 +431,13 @@ void Application::createAgents()
     auto & destination = agentManager.addComponent<Destination>(index);
 
     agentManager.addComponent<Graphic>(index);
-    agentManager.addComponent<Energy>(index, Utils::randomNumber(150.f, 300.f));
+    agentManager.addComponent<Energy>(index, Utils::randomNumber(100.f, 300.f),
+                                      Utils::randomNumber(15.f, 25.f));
 
     orientation.position.x = Utils::randomNumber(0.f, worldSize.x);
     orientation.position.y = Utils::randomNumber(0.f, worldSize.y);
-    orientation.velocity = 100.f;
-    orientation.viewRange = Utils::randomNumber(75.f, 150.f);
+    orientation.velocity = 300.f;
+    orientation.viewRange = Utils::randomNumber(100.f, 250.f);
     destination.position = orientation.position;
   }
 }
@@ -436,9 +451,9 @@ void Application::createEnergySources()
 
   for (std::size_t i = 0; i < maxSourcesNumber; ++i)
   {
-    const auto maxCapacity = Utils::randomNumber(10u, 50u);
-    const auto initialLevel = Utils::randomNumber(0u, maxCapacity);
-    const auto regenRate = Utils::randomNumber(1u, 3u);
+    const auto maxCapacity = Utils::randomNumber(25.f, 100.f);
+    const auto initialLevel = Utils::randomNumber(0.f, maxCapacity);
+    const auto regenRate = Utils::randomNumber(20.f, 50.f);
     const auto position = sf::Vector2f{ Utils::randomNumber(0.f, worldSize.x),
                                         Utils::randomNumber(0.f, worldSize.y) };
 

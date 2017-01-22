@@ -25,7 +25,7 @@ using AgentSettings = Settings<AgentComponents, AgentSignatures>;
 class Application
 {
 public:
-  Application(const sf::Vector2f & worldSize = { 800.f, 600.f },
+  Application(const sf::Vector2f & worldSize = { 5000.f, 5000.f },
               const sf::Vector2u & windowSize = { 800, 600 },
               std::wstring title = L"Application");
 
@@ -33,8 +33,8 @@ public:
 
   const sf::Vector2f worldSize;
   const std::size_t threadsNumber;
-  static const std::size_t maxAgentsNumber = 25;
-  static const std::size_t maxSourcesNumber = 10;
+  static const std::size_t maxAgentsNumber = 2200;
+  static const std::size_t maxSourcesNumber = 250;
 
 private:
   void handleEvents();
@@ -59,6 +59,9 @@ private:
   float getZoomFactor() const;
 
   sf::RenderWindow window;
+  sf::Text statisticLabel;
+  sf::Font font;
+
   Manager<AgentSettings> agentManager;
   std::vector<EnergySource> energySources;
   ThreadPool threadPool;

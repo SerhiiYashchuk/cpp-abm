@@ -56,7 +56,7 @@ struct Energy
 
   float value = 0;
   float consumptionRate = 1.f;
-  static constexpr float max = 100.f;
+  static constexpr float max = 500.f;
 };
 }
 
