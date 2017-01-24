@@ -25,7 +25,7 @@ using AgentSettings = Settings<AgentComponents, AgentSignatures>;
 class Application
 {
 public:
-  Application(const sf::Vector2f & worldSize = { 5000.f, 5000.f },
+  Application(const sf::Vector2f & worldSize = { 6000.f, 6000.f },
               const sf::Vector2u & windowSize = { 800, 600 },
               std::wstring title = L"Application");
 
@@ -33,8 +33,8 @@ public:
 
   const sf::Vector2f worldSize;
   const std::size_t threadsNumber;
-  static const std::size_t maxAgentsNumber = 2200;
-  static const std::size_t maxSourcesNumber = 250;
+  static const std::size_t maxAgentsNumber = 5500;
+  static const std::size_t maxSourcesNumber = 300;
 
 private:
   void handleEvents();
@@ -65,8 +65,6 @@ private:
   Manager<AgentSettings> agentManager;
   std::vector<EnergySource> energySources;
   ThreadPool threadPool;
-
-  static const sf::Time timePerFrame;
 };
 }
 

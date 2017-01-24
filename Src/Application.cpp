@@ -1,4 +1,3 @@
-#include <functional>
 #include <algorithm>
 
 #include "Application.hpp"
@@ -6,8 +5,6 @@
 
 namespace ABM
 {
-const sf::Time Application::timePerFrame = sf::seconds(1.f / 60.f);
-
 Application::Application(const sf::Vector2f & worldSize,
                          const sf::Vector2u & windowSize, std::wstring title)
   : worldSize(worldSize),
@@ -45,7 +42,7 @@ void Application::run()
 
     handleEvents();
     createAgents();
-    update(timePerFrame.asSeconds());
+    update(lastUpdateTime.asSeconds());
     agentManager.refresh();
 
     const auto fps = static_cast<std::size_t>(1.f / lastUpdateTime.asSeconds());
@@ -153,22 +150,135 @@ void Application::update(float delta)
 {
   using namespace std::placeholders;
 
-  // Move around the world and look for energy to consume
-  agentManager.forAgentsMatching<Harvesting>(std::bind(& Application::lookForEnergy,
-                                                       this, _1));
+  const auto agentsCount = agentManager.getAgentsCount();
 
-  // Move agents
-  agentManager.forAgentsMatching<Movement>(std::bind(& Application::moveAgent,
-                                                     this, _1, delta));
-  // Rotate an Agent to a direction that it's moving towards
-  agentManager.forAgentsMatching<Render>(std::bind(& Application::updateAgentPositionAndRotation,
-                                                   this, _1));
-  // Reduce agent's level of energy as a cost of its action
-  agentManager.forAgentsMatching<Life>(std::bind(& Application::applyAgentMetabolism,
-                                                 this, _1, delta));
-  // Change agent's fill color according to its level of energy
-  agentManager.forAgentsMatching<EnergyIndication>(std::bind(& Application::indicateAgentEnergyLevel,
-                                                             this, _1));
+  // Do not process agents by groups if number of agents is relatively small
+  if (agentsCount < 1000u)
+  {
+    // Move around the world and look for energy to consume
+    agentManager.forAllMatching<Harvesting>(std::bind(& Application::lookForEnergy,
+                                                         this, _1));
+    // Move agents
+    agentManager.forAllMatching<Movement>(std::bind(& Application::moveAgent,
+                                                       this, _1, delta));
+    // Rotate an Agent to a direction that it's moving towards
+    agentManager.forAllMatching<Render>(std::bind(& Application::updateAgentPositionAndRotation,
+                                                     this, _1));
+    // Reduce agent's level of energy as a cost of its action
+    agentManager.forAllMatching<Life>(std::bind(& Application::applyAgentMetabolism,
+                                                   this, _1, delta));
+    // Change agent's fill color according to its level of energy
+    agentManager.forAllMatching<EnergyIndication>(std::bind(& Application::indicateAgentEnergyLevel,
+                                                               this, _1));
+  }
+  else
+  {
+    const auto tasksCount = threadsNumber * 2;
+    const auto agentsPerTask = agentsCount / tasksCount;
+    std::vector<std::future<void>> results;
+
+
+    // Cannot parallel because EnergySource class is not thread-safe
+    // Parallel harvesting mechanism
+    for (std::size_t i = 0; i < tasksCount; ++i)
+    {
+      const auto first = i * agentsPerTask;
+      const auto last = i != tasksCount - 1 ? (i + 1) * agentsPerTask : agentsCount;
+
+      results.emplace_back(threadPool.addTask([this, first, last]
+      {
+        agentManager.forGroupMatching<Harvesting>(first, last, std::bind(& Application::lookForEnergy, this, _1));
+      }));
+    }
+
+    // Wait for harvestng tasks to finish
+    for (auto & result : results)
+    {
+      result.get();
+    }
+
+    results.clear();
+
+    // Parallel movement of agents
+    for (std::size_t i = 0; i < tasksCount; ++i)
+    {
+      const auto first = i * agentsPerTask;
+      const auto last = i != tasksCount - 1 ? (i + 1) * agentsPerTask : agentsCount;
+
+      results.emplace_back(threadPool.addTask([this, first, last, delta]
+      {
+        agentManager.forGroupMatching<Movement>(first, last, std::bind(& Application::moveAgent, this, _1, delta));
+      }));
+    }
+
+    // Wait for movement tasks to finish
+    for (auto & result : results)
+    {
+      result.get();
+    }
+
+    results.clear();
+
+    // Parallel visualization of agents
+    for (std::size_t i = 0; i < tasksCount; ++i)
+    {
+      const auto first = i * agentsPerTask;
+      const auto last = i != tasksCount - 1 ? (i + 1) * agentsPerTask : agentsCount;
+
+      results.emplace_back(threadPool.addTask([this, first, last]
+      {
+        agentManager.forGroupMatching<Render>(first, last, std::bind(& Application::updateAgentPositionAndRotation, this, _1));
+      }));
+    }
+
+    // Wait for visualization tasks to finish
+    for (auto & result : results)
+    {
+      result.get();
+    }
+
+    results.clear();
+
+    // Parallel life mechanism
+    for (std::size_t i = 0; i < tasksCount; ++i)
+    {
+      const auto first = i * agentsPerTask;
+      const auto last = i != tasksCount - 1 ? (i + 1) * agentsPerTask : agentsCount;
+
+      results.emplace_back(threadPool.addTask([this, first, last, delta]
+      {
+        agentManager.forGroupMatching<Life>(first, last, std::bind(& Application::applyAgentMetabolism, this, _1, delta));
+      }));
+    }
+
+    // Wait for life tasks to finish
+    for (auto & result : results)
+    {
+      result.get();
+    }
+
+    results.clear();
+
+    // Parallel energy indication
+    for (std::size_t i = 0; i < tasksCount; ++i)
+    {
+      const auto first = i * agentsPerTask;
+      const auto last = i != tasksCount - 1 ? (i + 1) * agentsPerTask : agentsCount;
+
+      results.emplace_back(threadPool.addTask([this, first, last]
+      {
+        agentManager.forGroupMatching<EnergyIndication>(first, last, std::bind(& Application::indicateAgentEnergyLevel, this, _1));
+      }));
+    }
+
+    // Wait for movement tasks to finish
+    for (auto & result : results)
+    {
+      result.get();
+    }
+
+    results.clear();
+  }
 
   // Udate energy sources
   for (auto & source : energySources)
@@ -189,7 +299,7 @@ void Application::draw()
     window.draw(source.getShape());
   }
 
-  agentManager.forAgentsMatching<Render>([this](auto index){
+  agentManager.forAllMatching<Render>([this](auto index){
     const auto & graphic = agentManager.getComponent<Graphic>(index);
 
     window.draw(graphic.shape);
