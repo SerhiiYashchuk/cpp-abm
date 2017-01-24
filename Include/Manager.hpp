@@ -287,7 +287,7 @@ public:
    * @brief Helper function that executes a given functor for all agents
    */
   template<typename TFunc>
-  void forAgents(TFunc && func) noexcept
+  void forAll(TFunc && func) noexcept
   {
     for (std::size_t i = 0; i < size; ++i)
     {
@@ -296,13 +296,43 @@ public:
   }
 
   /**
-   * @brief Helper functions that executes a given functor for each agent
-   * that matches specific Signature
+   * @brief Helper function that executes a given functor for a specified range
+   * of agents
+   */
+  template<typename TFunc>
+  void forGroup(std::size_t first, std::size_t last, TFunc func) noexcept
+  {
+    for ( ; first < last; ++first)
+    {
+      func(first);
+    }
+  }
+
+  /**
+   * @brief Helper function that executes a given functor for all agents
+   * that matche a specific Signature
    */
   template<typename TSignature, typename TFunc>
-  void forAgentsMatching(TFunc && func) noexcept
+  void forAllMatching(TFunc && func) noexcept
   {
-    forAgents([this, & func](std::size_t index){
+    forAll([this, & func](std::size_t index)
+    {
+      if (matchesSignature<TSignature>(index))
+      {
+        func(index);
+      }
+    });
+  }
+
+  /**
+   * @brief Helper function that executes a given functor for a specified group
+   * of agents that match a specific Signature
+   */
+  template<typename TSignature, typename TFunc>
+  void forGroupMatching(std::size_t first, std::size_t last, TFunc && func) noexcept
+  {
+    forGroup(first, last, [this, & func](std::size_t index)
+    {
       if (matchesSignature<TSignature>(index))
       {
         func(index);
