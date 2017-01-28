@@ -11,6 +11,7 @@ Application::Application(const sf::Vector2f & worldSize,
     threadsNumber(std::thread::hardware_concurrency() != 0 ?
       std::thread::hardware_concurrency() : 2),
     window({ windowSize.x, windowSize.y }, title),
+    grid(worldSize),
     threadPool(threadsNumber)
 {
   auto view = window.getView();
@@ -149,6 +150,17 @@ void Application::handleEvents()
 void Application::update(float delta)
 {
   using namespace std::placeholders;
+
+  // Update helping grid
+  grid.clearAgentsInfo();
+
+  agentManager.forAllMatching<Movement>([this](auto index)
+  {
+    const auto & orientation = agentManager.getComponent<Orientation>(index);
+    const auto gridPosition = grid.worldToGrid(orientation.position);
+
+    grid.cell(gridPosition).agents.push_back(index);
+  });
 
   const auto agentsCount = agentManager.getAgentsCount();
 
@@ -470,6 +482,24 @@ void Application::lookForEnergy(std::size_t index)
     {
       destination.position = orientation.position + Utils::normal(
             Utils::randomVector(-10.f, 10.f)) * orientation.viewRange;
+
+      if (destination.position.x > worldSize.x)
+      {
+        destination.position.x = worldSize.x;
+      }
+      else if (destination.position.x < 0)
+      {
+        destination.position.x = 0;
+      }
+
+      if (destination.position.y > worldSize.y)
+      {
+        destination.position.y = worldSize.y;
+      }
+      else if (destination.position.y < 0)
+      {
+        destination.position.y = 0;
+      }
     }
   }
   // Move to the source and replenish energy
@@ -508,15 +538,31 @@ void Application::lookForEnergy(std::size_t index)
 std::vector<std::size_t> Application::findEnergySourcesInRange(const sf::Vector2f & position,
                                                   float range)
 {
+  auto top = position.y - range > 0 ? position.y - range : 0;
+  auto bottom = position.y + range < worldSize.y ? position.y + range : worldSize.y;
+  auto left = position.x - range > 0 ? position.x - range : 0;
+  auto right = position.x + range < worldSize.x ? position.x + range : worldSize.x;
+
+  const auto topLeft = grid.worldToGrid({ left, top });
+  const auto bottomRight = grid.worldToGrid({ right, bottom });
+
   std::vector<std::size_t> indexes;
 
-  for (std::size_t i = 0; i < energySources.size(); ++i)
+  for (std::size_t x = topLeft.x; x < bottomRight.x; ++x)
   {
-    const auto distance = Utils::magnitude(energySources[i].getPosition() - position);
-
-    if (distance < range)
+    for (std::size_t y = topLeft.y; y < bottomRight.y; ++y)
     {
-      indexes.push_back(i);
+      const auto & sources = grid.cell({ x, y }).sources;
+
+      for (const auto i : sources)
+      {
+        const auto distance = Utils::magnitude(energySources[i].getPosition() - position);
+
+        if (distance < range)
+        {
+          indexes.push_back(i);
+        }
+      }
     }
   }
 
@@ -528,12 +574,15 @@ std::vector<std::size_t> Application::findEnergySourcesInRange(const sf::Vector2
  */
 void Application::createAgents()
 {
-  if (agentManager.getAgentsCount() > maxAgentsNumber)
+  if (agentManager.getAgentsCount() >= maxAgentsNumber)
   {
     return;
   }
 
-  for (std::size_t i = 0; i < maxAgentsNumber / 20; ++i)
+  const auto groupSize = maxAgentsNumber / 20;
+  const auto agentsToCreate = std::min(groupSize, maxAgentsNumber - agentManager.getAgentsCount());
+
+  for (std::size_t i = 0; i < agentsToCreate; ++i)
   {
     const auto index = agentManager.createIndex();
 
@@ -566,8 +615,10 @@ void Application::createEnergySources()
     const auto regenRate = Utils::randomNumber(20.f, 50.f);
     const auto position = sf::Vector2f{ Utils::randomNumber(0.f, worldSize.x),
                                         Utils::randomNumber(0.f, worldSize.y) };
+    const auto gridPosition = grid.worldToGrid(position);
 
     energySources.emplace_back(maxCapacity, initialLevel, regenRate, position);
+    grid.cell(gridPosition).sources.push_back(i);
   }
 }
 
