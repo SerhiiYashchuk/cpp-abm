@@ -1,6 +1,8 @@
 #ifndef ABM_COMPONENTS_HPP
 #define ABM_COMPONENTS_HPP
 
+#include <bitset>
+
 #include <SFML/Graphics.hpp>
 
 namespace ABM
@@ -57,6 +59,13 @@ struct Energy
   float value = 0;
   float consumptionRate = 1.f;
   static constexpr float max = 500.f;
+};
+
+struct Information
+{
+  static constexpr float shareRange = 50;
+  static constexpr std::size_t size = 10;
+  std::bitset<size> value;
 };
 }
 

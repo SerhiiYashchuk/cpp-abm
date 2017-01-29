@@ -170,6 +170,9 @@ void Application::update(float delta)
     // Move around the world and look for energy to consume
     agentManager.forAllMatching<Harvesting>(std::bind(& Application::lookForEnergy,
                                                          this, _1));
+    // Collect information from neighbors
+    agentManager.forAllMatching<InfoCollection>(std::bind(& Application::collectInfo,
+                                                          this, _1));
     // Move agents
     agentManager.forAllMatching<Movement>(std::bind(& Application::moveAgent,
                                                        this, _1, delta));
@@ -180,8 +183,11 @@ void Application::update(float delta)
     agentManager.forAllMatching<Life>(std::bind(& Application::applyAgentMetabolism,
                                                    this, _1, delta));
     // Change agent's fill color according to its level of energy
-    agentManager.forAllMatching<EnergyIndication>(std::bind(& Application::indicateAgentEnergyLevel,
-                                                               this, _1));
+    //agentManager.forAllMatching<EnergyIndication>(std::bind(& Application::indicateAgentEnergyLevel,
+    //                                                           this, _1));
+    // Change agent's fill color according to its knowledge
+    agentManager.forAllMatching<InfoIndication>(std::bind(& Application::indicateAgentKnowledge,
+                                                          this, _1));
   }
   else
   {
@@ -189,9 +195,8 @@ void Application::update(float delta)
     const auto agentsPerTask = agentsCount / tasksCount;
     std::vector<std::future<void>> results;
 
-
-    // Cannot parallel because EnergySource class is not thread-safe
     // Parallel harvesting mechanism
+    // NOTE: Cannot properly parallel because EnergySource class is not thread-safe
     for (std::size_t i = 0; i < tasksCount; ++i)
     {
       const auto first = i * agentsPerTask;
@@ -200,6 +205,26 @@ void Application::update(float delta)
       results.emplace_back(threadPool.addTask([this, first, last]
       {
         agentManager.forGroupMatching<Harvesting>(first, last, std::bind(& Application::lookForEnergy, this, _1));
+      }));
+    }
+
+    // Wait for harvestng tasks to finish
+    for (auto & result : results)
+    {
+      result.get();
+    }
+
+    results.clear();
+
+    // Parallel info collection
+    for (std::size_t i = 0; i < tasksCount; ++i)
+    {
+      const auto first = i * agentsPerTask;
+      const auto last = i != tasksCount - 1 ? (i + 1) * agentsPerTask : agentsCount;
+
+      results.emplace_back(threadPool.addTask([this, first, last]
+      {
+        agentManager.forGroupMatching<InfoCollection>(first, last, std::bind(& Application::collectInfo, this, _1));
       }));
     }
 
@@ -271,6 +296,7 @@ void Application::update(float delta)
 
     results.clear();
 
+    /*
     // Parallel energy indication
     for (std::size_t i = 0; i < tasksCount; ++i)
     {
@@ -283,7 +309,28 @@ void Application::update(float delta)
       }));
     }
 
-    // Wait for movement tasks to finish
+    // Wait for energy indication tasks to finish
+    for (auto & result : results)
+    {
+      result.get();
+    }
+
+    results.clear();
+    */
+
+    // Parallel knowledge indication
+    for (std::size_t i = 0; i < tasksCount; ++i)
+    {
+      const auto first = i * agentsPerTask;
+      const auto last = i != tasksCount - 1 ? (i + 1) * agentsPerTask : agentsCount;
+
+      results.emplace_back(threadPool.addTask([this, first, last]
+      {
+        agentManager.forGroupMatching<InfoIndication>(first, last, std::bind(& Application::indicateAgentKnowledge, this, _1));
+      }));
+    }
+
+    // Wait for knowledge indication tasks to finish
     for (auto & result : results)
     {
       result.get();
@@ -423,6 +470,26 @@ void Application::indicateAgentEnergyLevel(std::size_t index)
 }
 
 /**
+ * @brief Application::indicateAgentKnowledge
+ * @param index - index of an Agent
+ */
+void Application::indicateAgentKnowledge(std::size_t index)
+{
+  const auto & info = agentManager.getComponent<Information>(index);
+  auto & graphic = agentManager.getComponent<Graphic>(index);
+  const auto count = info.value.count();
+
+  if (count == 0)
+  {
+    graphic.shape.setFillColor(sf::Color::Yellow);
+  }
+  else
+  {
+    graphic.shape.setFillColor(count == info.value.size() ? sf::Color::Green : sf::Color::Blue);
+  }
+}
+
+/**
  * @brief Moves an Agent towards a Source Energy in his field of view.
  * When the Agent reaches the source, he replenishes his energy level
  * @param index - index of an Agent
@@ -431,8 +498,8 @@ void Application::lookForEnergy(std::size_t index)
 {
   auto & orientation = agentManager.getComponent<Orientation>(index);
   auto & destination = agentManager.getComponent<Destination>(index);
-  auto availableSources = findEnergySourcesInRange(orientation.position,
-                                                   orientation.viewRange);
+  auto availableSources = findSourcesInRange(orientation.position,
+                                             orientation.viewRange);
   const auto reachedDestination = orientation.position == destination.position;
 
   // We are interested only in sources with some minimum energy level or more
@@ -530,13 +597,32 @@ void Application::lookForEnergy(std::size_t index)
 }
 
 /**
+ * @brief Collects information from nearby agents
+ * @param index - index of an Agent
+ */
+void Application::collectInfo(std::size_t index)
+{
+  const auto & orientation = agentManager.getComponent<Orientation>(index);
+  auto & info = agentManager.getComponent<Information>(index);
+
+  const auto nearbyAgents = findAgentsInRange(orientation.position,
+                                              info.shareRange);
+
+  for (const auto i : nearbyAgents)
+  {
+    // NOTE: Getting info from nearby agents instead of sharing ours is thread-safe
+    info.value |= agentManager.getComponent<Information>(i).value;
+  }
+}
+
+/**
  * @brief Searches for Energy Sources in specific area
  * @param position - position in a world
  * @param range - range in which search is performed
  * @return Vector with indexes of found Energy Sources
  */
-std::vector<std::size_t> Application::findEnergySourcesInRange(const sf::Vector2f & position,
-                                                  float range)
+std::vector<std::size_t> Application::findSourcesInRange(sf::Vector2f position,
+                                                         float range) const
 {
   auto top = position.y - range > 0 ? position.y - range : 0;
   auto bottom = position.y + range < worldSize.y ? position.y + range : worldSize.y;
@@ -570,6 +656,47 @@ std::vector<std::size_t> Application::findEnergySourcesInRange(const sf::Vector2
 }
 
 /**
+ * @brief Searches for Agents in specific area
+ * @param position - position in a world
+ * @param range - range in which search is performed
+ * @return Vector with indexed of found Agents
+ */
+std::vector<std::size_t> Application::findAgentsInRange(sf::Vector2f position,
+                                                        float range) const
+{
+  auto top = position.y - range > 0 ? position.y - range : 0;
+  auto bottom = position.y + range < worldSize.y ? position.y + range : worldSize.y;
+  auto left = position.x - range > 0 ? position.x - range : 0;
+  auto right = position.x + range < worldSize.x ? position.x + range : worldSize.x;
+
+  const auto topLeft = grid.worldToGrid({ left, top });
+  const auto bottomRight = grid.worldToGrid({ right, bottom });
+
+  std::vector<std::size_t> indexes;
+
+  for (std::size_t x = topLeft.x; x < bottomRight.x; ++x)
+  {
+    for (std::size_t y = topLeft.y; y < bottomRight.y; ++y)
+    {
+      const auto & sources = grid.cell({ x, y }).agents;
+
+      for (const auto i : sources)
+      {
+        const auto & orientation = agentManager.getComponent<Orientation>(i);
+        const auto distance = Utils::magnitude(orientation.position - position);
+
+        if (distance < range)
+        {
+          indexes.push_back(i);
+        }
+      }
+    }
+  }
+
+  return indexes;
+}
+
+/**
  * @brief Creates new Agents
  */
 void Application::createAgents()
@@ -588,6 +715,7 @@ void Application::createAgents()
 
     auto & orientation = agentManager.addComponent<Orientation>(index);
     auto & destination = agentManager.addComponent<Destination>(index);
+    auto & info = agentManager.addComponent<Information>(index);
 
     agentManager.addComponent<Graphic>(index);
     agentManager.addComponent<Energy>(index, Utils::randomNumber(100.f, 300.f),
@@ -598,6 +726,7 @@ void Application::createAgents()
     orientation.velocity = 300.f;
     orientation.viewRange = Utils::randomNumber(100.f, 250.f);
     destination.position = orientation.position;
+    info.value = Utils::randomBitset<Information::size>(0.1);
   }
 }
 
@@ -654,6 +783,10 @@ void Application::moveView(const sf::Vector2f & offset)
   window.setView(view);
 }
 
+/**
+ * @brief Zoom factor getter
+ * @return Current zoom factor
+ */
 float Application::getZoomFactor() const
 {
   return window.getView().getSize().x / window.getSize().x;

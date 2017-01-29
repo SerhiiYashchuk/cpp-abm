@@ -12,15 +12,18 @@
 
 namespace ABM
 {
-using AgentComponents = ComponentList<Orientation, Energy, Destination, Graphic>;
+using AgentComponents = ComponentList<Orientation, Energy, Destination, Graphic,
+  Information>;
 
 using Movement = Signature<Orientation, Destination>;
 using Life = Signature<Energy>;
 using Harvesting = Signature<Orientation, Destination, Energy>;
+using InfoCollection = Signature<Orientation, Information>;
 using Render = Signature<Orientation, Destination, Graphic>;
 using EnergyIndication = Signature<Energy, Graphic>;
-using AgentSignatures = SignatureList<Movement, Life, Harvesting, Render,
-  EnergyIndication>;
+using InfoIndication = Signature<Information, Graphic>;
+using AgentSignatures = SignatureList<Movement, Life, Harvesting, InfoCollection,
+  Render, EnergyIndication, InfoIndication>;
 
 using AgentSettings = Settings<AgentComponents, AgentSignatures>;
 
@@ -130,10 +133,12 @@ private:
   void updateAgentPositionAndRotation(std::size_t index);
   void applyAgentMetabolism(std::size_t index, float delta);
   void indicateAgentEnergyLevel(std::size_t index);
+  void indicateAgentKnowledge(std::size_t index);
   void lookForEnergy(std::size_t index);
+  void collectInfo(std::size_t index);
 
-  std::vector<std::size_t> findEnergySourcesInRange(const sf::Vector2f & position,
-                                                    float range);
+  std::vector<std::size_t> findSourcesInRange(sf::Vector2f position, float range) const;
+  std::vector<std::size_t> findAgentsInRange(sf::Vector2f position, float range) const;
 
   void createAgents();
   void createEnergySources();
