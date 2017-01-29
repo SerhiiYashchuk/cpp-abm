@@ -515,32 +515,8 @@ void Application::lookForEnergy(std::size_t index)
     }
   }
 
-  // In this scenario we prioritize our choice
-  /*
-  if (!preferableSources.empty())
-  {
-    availableSources = std::move(preferableSources);
-  }
-  */
-
   // In this scenario we completely ignore sources with low energy level
   availableSources = std::move(preferableSources);
-
-  /*
-  if (std::any_of(std::begin(availableSources), std::end(availableSources),
-                  [this, minimumPreferableLevel](auto index)->bool
-    {
-      return energySources[index].getCurrentLevel() >= minimumPreferableLevel;
-    }))
-  {
-    // FIXME: Crashes if using erase-remove idiom
-    availableSources.erase(std::remove_if(std::begin(availableSources), std::end(availableSources),
-                                          [this, minimumPreferableLevel](auto index)->bool
-      {
-        return energySources[index].getCurrentLevel() < minimumPreferableLevel;
-      }));
-  }
-  */
 
   // No sources found. Move in random direction
   if (availableSources.empty())
