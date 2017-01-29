@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <random>
 #include <cmath>
+#include <bitset>
 #include <cassert>
 
 #include <SFML/System/Vector2.hpp>
@@ -97,6 +98,26 @@ template<typename T>
 sf::Vector2<T> randomVector(T minValue, T maxValue)
 {
   return { randomNumber(minValue, maxValue), randomNumber(minValue, maxValue) };
+}
+
+/**
+ * @brief Generates a bitset with randomly set bits
+ */
+template<std::size_t size>
+std::bitset<size> randomBitset(double probability = 0.5)
+{
+  std::bitset<size> bitset;
+
+  static std::random_device randomDevice;
+  static std::mt19937 generator{ randomDevice() };
+  std::bernoulli_distribution distr{ probability };
+
+  for (std::size_t i = 0; i < size; ++i)
+  {
+    bitset[i] = distr(generator);
+  }
+
+  return bitset;
 }
 }
 }
